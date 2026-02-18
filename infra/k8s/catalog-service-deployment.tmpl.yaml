@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service-deployment
+  namespace: workshop
+  labels:
+    app: catalog-service
+    tags.datadoghq.com/service: catalog-service
+    tags.datadoghq.com/env: development
+    tags.datadoghq.com/version: "1.0.0"
+spec:
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+        tags.datadoghq.com/service: catalog-service
+        tags.datadoghq.com/env: development
+        tags.datadoghq.com/version: "1.0.0"
+      annotations:
+        ad.datadoghq.com/web.logs: |
+          [
+            {
+              "source": "ruby",
+              "service": "catalog-service"
+            }
+          ]
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: catalog-service
+          image: "${IMAGE_URI}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DD_TRACE_HTTP_CLIENT_IGNORE_URLS
+              value: "/up"
+            - name: DD_TRACE_ENABLED
+              value: "true"
+            - name: DD_AGENT_HOST
+              value: datadog-agent
+            - name: DD_TRACE_AGENT_PORT
+              value: "8126"
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/service']
+            - name: DD_ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/env']
+            - name: DD_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/version']
+            - name: DD_TRACE_HTTP_CLIENT_IGNORE_URLS
+              value: "/up"
+            - name: RAILS_LOG_TO_STDOUT
+              value: "true"
+            - name: UID
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: UID
+            - name: GID
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: GID
+            - name: DATABASE_HOST
+              value: db-catalog-service
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: web-secret
+                  key: DATABASE_USERNAME
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: web-secret
+                  key: DATABASE_PASSWORD
+            - name: SECRET_KEY_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: web-secret
+                  key: SECRET_KEY_BASE
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "250m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /up
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 60
+          livenessProbe:
+            httpGet:
+              path: /up
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 60
+      restartPolicy: Always

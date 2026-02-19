@@ -43,6 +43,9 @@ Este projeto é uma API Rails para gerenciamento de catálogo de produtos e serv
 ### Testes
 Os testes estão em `spec/`. Use `make test` para rodar.
 
+### Cobertura de Testes
+![Cobertura de Testes](docs/coverage.png)
+
 ### Documentação
 Swagger disponível via rswag (ver gems e inicializadores).
 
